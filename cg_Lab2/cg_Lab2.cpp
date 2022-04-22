@@ -5,6 +5,7 @@
 #include "glm/vec3.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
+#include "pipeline.h"
 
 
 //#include <math_3d.h>

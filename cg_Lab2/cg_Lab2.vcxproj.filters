@@ -23,5 +23,8 @@
     <ClInclude Include="math_3d.h">
       <Filter>Исходные файлы</Filter>
     </ClInclude>
+    <ClInclude Include="pipeline.h">
+      <Filter>Исходные файлы</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
