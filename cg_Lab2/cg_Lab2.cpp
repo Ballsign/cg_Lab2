@@ -45,14 +45,28 @@ void RenderSceneCB() {
     Scale += 0.001f;
 
     glm::mat4  World;
+    glm::mat4  WorldX; 
 
-    World[0][0] = cosf(Scale); World[0][1] = -sinf(Scale); World[0][2] = 0.0f; World[0][3] = sinf(0.0f);
-    World[1][0] = sinf(Scale); World[1][1] = cosf(Scale); World[1][2] = 0.0f; World[1][3] = 0.0f;
-    World[2][0] = 0.0f; World[2][1] = 0.0f; World[2][2] = 1.0f; World[2][3] = 0.0f;
-    World[3][0] = 0.0f; World[3][1] = 0.0f; World[3][2] = 0.0f; World[3][3] = 1.0f;
+    WorldX[0][0] = 1.0f; WorldX[0][1] = 0.0f; WorldX[0][2] = 0.0f; WorldX[0][3] = sinf(Scale);
+    WorldX[1][0] = 0.0f; WorldX[1][1] = 1.0f; WorldX[1][2] = 0.0f; WorldX[1][3] = 0.0f;
+    WorldX[2][0] = 0.0f; WorldX[2][1] = 0.0f; WorldX[2][2] = 1.0f; WorldX[2][3] = 0.0f;
+    WorldX[3][0] = 0.0f; WorldX[3][1] = 0.0f; WorldX[3][2] = 0.0f; WorldX[3][3] = 1.0f;
+    glm::mat4  WorldZ;
 
-    glUniformMatrix4fv(gWorldLocation, 1, GL_TRUE, &World[0][0]);
+    WorldZ[0][0] = cosf(Scale); WorldZ[0][1] = -sinf(Scale);  WorldZ[0][2] = 0.0f;          WorldZ[0][3] = 0.0f;
+    WorldZ[1][0] = sinf(Scale); WorldZ[1][1] = cosf(Scale);   WorldZ[1][2] = 0.0f;          WorldZ[1][3] = 0.0f;
+    WorldZ[2][0] = 0.0f;           WorldZ[2][1] = 0.0f;             WorldZ[2][2] = 1.0f;          WorldZ[2][3] = 0.0f;
+    WorldZ[3][0] = 0.0f;           WorldZ[3][1] = 0.0f;             WorldZ[3][2] = 0.0f;          WorldZ[3][3] = 1.0f;
+    glm::mat4  scale;
 
+    WorldX[0][0] = sinf(Scale); WorldX[0][1] = -sinf(Scale);  WorldX[0][2] = 0.0f;          WorldX[0][3] = 0.0f;
+    WorldX[1][0] = sinf(Scale); WorldX[1][1] = cosf(Scale);   WorldX[1][2] = 0.0f;          WorldX[1][3] = 0.0f;
+    WorldX[2][0] = 0.0f;           WorldX[2][1] = 0.0f;             WorldX[2][2] = sinf(Scale); WorldX[2][3] = 0.0f;
+    WorldX[3][0] = 0.0f;           WorldX[3][1] = 0.0f;             WorldX[3][2] = 0.0f;          WorldX[3][3] = 1.0f;
+    
+    World = WorldX * WorldZ * scale;
+
+    glUniformMatrix4fv(gWorldLocation, 1, GL_TRUE, &WorldX[0][0]);
     glEnableVertexAttribArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
