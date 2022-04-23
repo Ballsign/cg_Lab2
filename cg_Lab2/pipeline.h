@@ -1,11 +1,12 @@
 #ifndef CG_LAB1_PIPELINE_H
 #define CG_LAB1_PIPELINE_H
 
+#define _USE_MATH_DEFINES
+
 #include <cmath>
 #include <glm/detail/type_mat4x4.hpp>
 
 #define ToRadian(x) ((x) * M_PI / 180.0f)
-#define ToDegree(x) ((x) * 180.0f / M_PI)
 
 class Pipeline {
 public:
@@ -35,9 +36,9 @@ public:
     const glm::mat4* getTransformation();
 
 private:
-    /*void InitScaleTrans(glm::mat4& m) const;
-    void InitRotateTrans(glm::mat4& m) const;
-    void InitTranslationTrans(glm::mat4& m) const;*/
+    void InitScaleTransform(glm::mat4& m) const;
+    void InitRotateTransform(glm::mat4& m) const;
+    void InitTranslationTransform(glm::mat4& m) const;
 
     glm::vec3 mScale;
     glm::vec3 mWorldPos;
