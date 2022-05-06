@@ -10,6 +10,7 @@
 
 class Pipeline {
 public:
+    glm::mat4 m;
     Pipeline() :
         mScale(glm::vec3(1.0f, 1.0f, 1.0f)),
         mWorldPos(glm::vec3(0.0f, 0.0f, 0.0f)),
@@ -43,11 +44,39 @@ public:
     }
     const glm::mat4* getTransformation();
 
+    glm::vec3 Cross(const glm::vec3& v) const
+    {
+        glm::vec3 tmp;
+        tmp[0] = mWorldPos[1] * v[2] - mWorldPos[2] * v[1];
+        tmp[1] = mWorldPos[2] * v[0] - mWorldPos[0] * v[2];
+        tmp[2] = mWorldPos[0] * v[1] - mWorldPos[1] * v[0];
+        
+        return tmp;
+    }///
+
+    void SetCamera(const glm::vec3& Pos, const glm::vec3& Target, const glm::vec3& Up)
+    {
+        m_camera.Pos = Pos;
+        m_camera.Target = Target;
+        m_camera.Up = Up;
+    }
+
+    glm::vec3& Normalize() {
+        const float Length = sqrtf(mWorldPos[0] * mWorldPos[0] + mWorldPos[1] * mWorldPos[1] + mWorldPos[2] * mWorldPos[2]);
+
+        mWorldPos[0] /= Length;
+        mWorldPos[1] /= Length;
+        mWorldPos[2] /= Length;
+
+        return mWorldPos;
+    }///
+
 private:
-    void InitScaleTransform(glm::mat4& m) const;
-    void InitRotateTransform(glm::mat4& m) const;
-    void InitTranslationTransform(glm::mat4& m) const;
-    void InitPerspectiveProj(glm::mat4& m) const;
+    void InitScaleTransform(float ScaleX, float ScaleY, float ScaleZ);
+    void InitRotateTransform(float RotateX, float RotateY, float RotateZ);
+    void InitTranslationTransform(float x, float y, float z);
+    void InitPerspectiveProj(float FOV, float Width, float Height, float zNear, float zFar);
+    void InitCameraTransform(const glm::vec3& Target, const glm::vec3& Up);
 
     glm::vec3 mScale;
     glm::vec3 mWorldPos;
@@ -61,6 +90,12 @@ private:
         float zNear;
         float zFar;
     } mPersProj;
+
+    struct {
+        glm::vec3 Pos;
+        glm::vec3 Target;
+        glm::vec3 Up;
+    } m_camera;
 };
 
 

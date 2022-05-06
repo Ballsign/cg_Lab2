@@ -13,6 +13,7 @@
 using namespace std;
 
 GLuint VBO;
+GLuint IBO;
 GLuint gWorldLocation;
 
 static const char* pVS = "                                                          \n\
@@ -22,19 +23,24 @@ layout (location = 0) in vec3 Position;                                         
                                                                                     \n\
 uniform mat4 gWorld;                                                                \n\
                                                                                     \n\
+out vec4 Color;                                                                     \n\
+                                                                                    \n\
 void main()                                                                         \n\
 {                                                                                   \n\
     gl_Position = gWorld * vec4(Position, 1.0);                                     \n\
+    Color = vec4(clamp(Position, 0.0, 1.0), 1.0);                                   \n\
 }";
 
 static const char* pFS = "                                                          \n\
 #version 330                                                                        \n\
                                                                                     \n\
+in vec4 Color;                                                                      \n\
+                                                                                    \n\
 out vec4 FragColor;                                                                 \n\
                                                                                     \n\
 void main()                                                                         \n\
 {                                                                                   \n\
-    FragColor = vec4(1.0, 1.0, 0.0, 1.0);                                           \n\
+    FragColor = Color;                                                              \n\
 }";
 
 
@@ -43,16 +49,21 @@ void RenderSceneCB() {
     glClear(GL_COLOR_BUFFER_BIT);
 
     static float Scale = 0.0f;
-    Scale += 0.001f;
-
+    Scale += 0.01f;
+    
     Pipeline p;
-    /*p.Scale(sinf(Scale * 0.1f), sinf(Scale * 0.1f), sinf(Scale * 0.1f));
+    /*p.Scale(sinf(Scale * 0.1f) + 1, sinf(Scale * 0.1f) + 1, sinf(Scale * 0.1f) + 1);
     p.WorldPos(sinf(Scale), 0.0f, 0.0f);
     p.Rotate(sinf(Scale) * 90.0f, sinf(Scale) * 90.0f, sinf(Scale) * 90.0f);*/
+
     p.Scale(0.1f, 0.1f, 0.1f);
+    p.Rotate(0, 0, Scale);
     p.WorldPos(0.0f, 0.0f, 100.0f);
-    p.Rotate(0.0f, 0.0f, 0.0f);
     p.PerspectiveProj(90.0f, WINDOW_WIDTH, WINDOW_HEIGHT, 10.0f, 10000.0f);
+    glm::vec3 CameraPos(0.0f, 0.0f, -3.0f);
+    glm::vec3 CameraTarget(0.0f, 0.0f, 2.0f);
+    glm::vec3 CameraUp(0.0f, 1.0f, 0.0f);
+    p.SetCamera(CameraPos, CameraTarget, CameraUp);
 
     glUniformMatrix4fv(gWorldLocation, 1, GL_TRUE, (const GLfloat*)p.getTransformation());
 
@@ -60,9 +71,9 @@ void RenderSceneCB() {
     glEnableVertexAttribArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
 
-
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 3);
+    glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, nullptr);
 
     
     glDisableVertexAttribArray(0);
@@ -78,15 +89,28 @@ static void InitializeGlutCallbacks()
 
 static void CreateVertexBuffer()
 {
-    glm::vec3 Vertices[3];
-    Vertices[0] = glm::vec3(0.0f, 0.33f, 0.0f);
-    Vertices[1] = glm::vec3(0.33f, 0.0f, 0.0f);
-    Vertices[2] = glm::vec3(-0.33f, 0.0f, 0.0f);
-
+    glm::vec3 Vertices[4];
+    Vertices[0] = glm::vec3(-1.0f, -1.0f, 0.5773f);
+    Vertices[1] = glm::vec3(0.0f, -1.0f, -1.15475f);
+    Vertices[2] = glm::vec3(1.0f, -1.0f, 0.5773f);
+    Vertices[3] = glm::vec3(0.0f, 1.0f, 0.0f);
 
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices), Vertices, GL_STATIC_DRAW);
+}
+
+void createIndexBuffer() {
+    unsigned int indices[] = {
+            0, 3, 1,
+            1, 3, 2,
+            2, 3, 0,
+            0, 2, 1
+    };
+
+    glGenBuffers(1, &IBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 }
 
 static void AddShader(GLuint ShaderProgram, const char* pShaderText, GLenum ShaderType)
@@ -174,6 +198,7 @@ int main(int argc, char* argv[]) {
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
     CreateVertexBuffer();
+    createIndexBuffer();
     CompileShaders();
     glutMainLoop();
 }
