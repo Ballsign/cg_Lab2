@@ -6,6 +6,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
 #include "pipeline.h"
+#include "Camera.h"
 
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
@@ -15,6 +16,8 @@ using namespace std;
 GLuint VBO;
 GLuint IBO;
 GLuint gWorldLocation;
+
+Camera GameCamera;
 
 static const char* pVS = "                                                          \n\
 #version 330                                                                        \n\
@@ -45,24 +48,17 @@ void main()                                                                     
 
 
 void RenderSceneCB() {
-    /*glClearColor(0.7f, 1.0f, 0.7f, 0.0);*/
     glClear(GL_COLOR_BUFFER_BIT);
 
     static float Scale = 0.0f;
     Scale += 0.01f;
     
     Pipeline p;
-    /*p.Scale(sinf(Scale * 0.1f) + 1, sinf(Scale * 0.1f) + 1, sinf(Scale * 0.1f) + 1);
-    p.WorldPos(sinf(Scale), 0.0f, 0.0f);
-    p.Rotate(sinf(Scale) * 90.0f, sinf(Scale) * 90.0f, sinf(Scale) * 90.0f);*/
 
     p.Scale(0.1f, 0.1f, 0.1f);
-    p.Rotate(0, 0, Scale);
+    p.Rotate(Scale, Scale, Scale);
     p.WorldPos(0.0f, 0.0f, 100.0f);
-    glm::vec3 CameraPos(0.0f, 0.0f, -3.0f);
-    glm::vec3 CameraTarget(0.0f, 0.0f, 2.0f);
-    glm::vec3 CameraUp(0.0f, 1.0f, 0.0f);
-    p.SetCamera(CameraPos, CameraTarget, CameraUp);
+    p.SetCamera(GameCamera.GetPos(), GameCamera.GetTarget(), GameCamera.GetUp());
     p.PerspectiveProj(90.0f, WINDOW_WIDTH, WINDOW_HEIGHT, 10.0f, 10000.0f);
 
     glUniformMatrix4fv(gWorldLocation, 1, GL_TRUE, (const GLfloat*)p.getTransformation());
@@ -73,7 +69,7 @@ void RenderSceneCB() {
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
 
-    glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, nullptr);
+    glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, 0);
 
     
     glDisableVertexAttribArray(0);
@@ -81,18 +77,24 @@ void RenderSceneCB() {
     glutSwapBuffers();
 }
 
+static void SpecialKeyboardCB(int Key, int x, int y)
+{
+    GameCamera.OnKeyboard(Key);
+}
+
 static void InitializeGlutCallbacks()
 {
     glutDisplayFunc(RenderSceneCB);
     glutIdleFunc(RenderSceneCB);
+    glutSpecialFunc(SpecialKeyboardCB);
 }
 
 static void CreateVertexBuffer()
 {
     glm::vec3 Vertices[4];
-    Vertices[0] = glm::vec3(-1.0f, -1.0f, 0.5773f);
-    Vertices[1] = glm::vec3(0.0f, -1.0f, -1.15475f);
-    Vertices[2] = glm::vec3(1.0f, -1.0f, 0.5773f);
+    Vertices[0] = glm::vec3(-1.0f, -1.0f, 0.0f/*0.5773f*/);
+    Vertices[1] = glm::vec3(0.0f, -1.0f,  1.0f/*-1.15475*/);
+    Vertices[2] = glm::vec3(1.0f, -1.0f,  0.0f/*0.5773f*/);
     Vertices[3] = glm::vec3(0.0f, 1.0f, 0.0f);
 
     glGenBuffers(1, &VBO);

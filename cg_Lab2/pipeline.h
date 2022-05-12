@@ -44,7 +44,7 @@ public:
     }
     const glm::mat4* getTransformation();
 
-    glm::vec3 Cross(glm::vec3& v1, glm::vec3& v2) {
+    static glm::vec3 Cross(glm::vec3& v1, glm::vec3& v2) {
         float _x = v1.y * v2.z - v1.z * v2.y;
         float _y = v1.z * v2.x - v1.x * v2.z;
         float _z = v1.x * v2.y - v1.y * v2.x;
@@ -60,7 +60,7 @@ public:
         m_camera.Up = Up;
     }
 
-    /**/void Normalize(glm::vec3& v) {
+    /**/static void Normalize(glm::vec3& v) {
         float Length = sqrtf(v.x * v.x + v.y * v.y + v.z * v.z);
         if (Length != 0) {
             v.x /= Length;
