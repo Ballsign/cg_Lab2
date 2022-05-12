@@ -59,11 +59,11 @@ void RenderSceneCB() {
     p.Scale(0.1f, 0.1f, 0.1f);
     p.Rotate(0, 0, Scale);
     p.WorldPos(0.0f, 0.0f, 100.0f);
-    p.PerspectiveProj(90.0f, WINDOW_WIDTH, WINDOW_HEIGHT, 10.0f, 10000.0f);
     glm::vec3 CameraPos(0.0f, 0.0f, -3.0f);
     glm::vec3 CameraTarget(0.0f, 0.0f, 2.0f);
     glm::vec3 CameraUp(0.0f, 1.0f, 0.0f);
     p.SetCamera(CameraPos, CameraTarget, CameraUp);
+    p.PerspectiveProj(90.0f, WINDOW_WIDTH, WINDOW_HEIGHT, 10.0f, 10000.0f);
 
     glUniformMatrix4fv(gWorldLocation, 1, GL_TRUE, (const GLfloat*)p.getTransformation());
 

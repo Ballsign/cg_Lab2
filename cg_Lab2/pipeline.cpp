@@ -56,22 +56,20 @@ void Pipeline::InitPerspectiveProj(float FOV, float Width, float Height, float z
     m[3][0] = 0.0f;                     m[3][1] = 0.0f;              m[3][2] = 1.0f;                     m[3][3] = 0.0;
 }
 
-void Pipeline::InitCameraTransform(const glm::vec3& Target, const glm::vec3& Up)
+void Pipeline::InitCameraTransform(glm::vec3& Target, glm::vec3& Up)
 {
-    Pipeline N;
-    N.m_camera.Target = Target;
-    N.Normalize();
-    Pipeline U;
-    U.m_camera.Up = Up;
-    U.Normalize();
-    U.m_camera.Up = U.Cross(Target);
-    Pipeline V;
-    V.m_camera.Pos = N.Cross(U.m_camera.Up);
+    glm::vec3 N = Target;
 
-    m[0][0] = U.m_camera.Up[0]; m[0][1] = U.m_camera.Up[1]; m[0][2] = U.m_camera.Up[2]; m[0][3] = 0.0f;
-    m[1][0] = V.m_camera.Pos[0]; m[1][1] = V.m_camera.Pos[1]; m[1][2] = V.m_camera.Pos[2]; m[1][3] = 0.0f;
-    m[2][0] = N.m_camera.Target[0]; m[2][1] = N.m_camera.Target[1]; m[2][2] = N.m_camera.Target[2]; m[2][3] = 0.0f;
-    m[3][0] = 0.0f;             m[3][1] = 0.0f;             m[3][2] = 0.0f;             m[3][3] = 1.0f;
+    Normalize(N);
+    glm::vec3 U = Up;
+    Normalize(U);
+    U = Cross(U, Target);
+    glm::vec3 V = Cross(N, U);
+
+    m[0][0] = U.x; m[0][1] = U.y; m[0][2] = U.z; m[0][3] = 0.0f;
+    m[1][0] = V.x; m[1][1] = V.y; m[1][2] = V.z; m[1][3] = 0.0f;
+    m[2][0] = N.x; m[2][1] = N.y; m[2][2] = N.z; m[2][3] = 0.0f;
+    m[3][0] = 0.0f; m[3][1] = 0.0f; m[3][2] = 0.0f; m[3][3] = 1.0f;
 }
 
 const glm::mat4* Pipeline::getTransformation()

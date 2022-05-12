@@ -44,15 +44,14 @@ public:
     }
     const glm::mat4* getTransformation();
 
-    glm::vec3 Cross(const glm::vec3& v) const
-    {
-        glm::vec3 tmp;
-        tmp[0] = mWorldPos[1] * v[2] - mWorldPos[2] * v[1];
-        tmp[1] = mWorldPos[2] * v[0] - mWorldPos[0] * v[2];
-        tmp[2] = mWorldPos[0] * v[1] - mWorldPos[1] * v[0];
-        
-        return tmp;
-    }///
+    glm::vec3 Cross(glm::vec3& v1, glm::vec3& v2) {
+        float _x = v1.y * v2.z - v1.z * v2.y;
+        float _y = v1.z * v2.x - v1.x * v2.z;
+        float _z = v1.x * v2.y - v1.y * v2.x;
+
+        return glm::vec3(_x, _y, _z);
+    }
+
 
     void SetCamera(const glm::vec3& Pos, const glm::vec3& Target, const glm::vec3& Up)
     {
@@ -61,22 +60,21 @@ public:
         m_camera.Up = Up;
     }
 
-    glm::vec3& Normalize() {
-        const float Length = sqrtf(mWorldPos[0] * mWorldPos[0] + mWorldPos[1] * mWorldPos[1] + mWorldPos[2] * mWorldPos[2]);
-
-        mWorldPos[0] /= Length;
-        mWorldPos[1] /= Length;
-        mWorldPos[2] /= Length;
-
-        return mWorldPos;
-    }///
+    /**/void Normalize(glm::vec3& v) {
+        float Length = sqrtf(v.x * v.x + v.y * v.y + v.z * v.z);
+        if (Length != 0) {
+            v.x /= Length;
+            v.y /= Length;
+            v.z /= Length;
+        }
+    }
 
 private:
     void InitScaleTransform(float ScaleX, float ScaleY, float ScaleZ);
     void InitRotateTransform(float RotateX, float RotateY, float RotateZ);
     void InitTranslationTransform(float x, float y, float z);
     void InitPerspectiveProj(float FOV, float Width, float Height, float zNear, float zFar);
-    void InitCameraTransform(const glm::vec3& Target, const glm::vec3& Up);
+    void InitCameraTransform(glm::vec3& Target, glm::vec3& Up);
 
     glm::vec3 mScale;
     glm::vec3 mWorldPos;
