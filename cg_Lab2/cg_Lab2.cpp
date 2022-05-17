@@ -17,7 +17,7 @@ GLuint VBO;
 GLuint IBO;
 GLuint gWorldLocation;
 
-Camera GameCamera;
+Camera* pGameCamera = NULL;
 
 static const char* pVS = "                                                          \n\
 #version 330                                                                        \n\
@@ -48,6 +48,8 @@ void main()                                                                     
 
 
 void RenderSceneCB() {
+    pGameCamera->OnRender();
+
     glClear(GL_COLOR_BUFFER_BIT);
 
     static float Scale = 0.0f;
@@ -56,10 +58,10 @@ void RenderSceneCB() {
     Pipeline p;
 
     p.Scale(0.1f, 0.1f, 0.1f);
-    p.Rotate(Scale, Scale, Scale);
-    p.WorldPos(0.0f, 0.0f, 100.0f);
-    p.SetCamera(GameCamera.GetPos(), GameCamera.GetTarget(), GameCamera.GetUp());
-    p.PerspectiveProj(90.0f, WINDOW_WIDTH, WINDOW_HEIGHT, 10.0f, 10000.0f);
+    p.Rotate(0.0f, 0.0f, 0.0f);
+    p.WorldPos(0.0f, 0.0f, 2.0f);
+    p.SetCamera(pGameCamera->GetPos(), pGameCamera->GetTarget(), pGameCamera->GetUp());
+    p.PerspectiveProj(60.0f, WINDOW_WIDTH, WINDOW_HEIGHT, 1.0f, 100.0f);
 
     glUniformMatrix4fv(gWorldLocation, 1, GL_TRUE, (const GLfloat*)p.getTransformation());
 
@@ -70,7 +72,6 @@ void RenderSceneCB() {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
 
     glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, 0);
-
     
     glDisableVertexAttribArray(0);
 
@@ -79,7 +80,20 @@ void RenderSceneCB() {
 
 static void SpecialKeyboardCB(int Key, int x, int y)
 {
-    GameCamera.OnKeyboard(Key);
+    pGameCamera->OnKeyboard(Key);
+}
+
+static void KeyboardCB(unsigned char Key, int x, int y)
+{
+    switch (Key) {
+    case 'q':
+        exit(0);
+    }
+}
+
+static void PassiveMouseCB(int x, int y)
+{
+    pGameCamera->OnMouse(x, y);
 }
 
 static void InitializeGlutCallbacks()
@@ -87,14 +101,16 @@ static void InitializeGlutCallbacks()
     glutDisplayFunc(RenderSceneCB);
     glutIdleFunc(RenderSceneCB);
     glutSpecialFunc(SpecialKeyboardCB);
+    glutPassiveMotionFunc(PassiveMouseCB);
+    glutKeyboardFunc(KeyboardCB);
 }
 
 static void CreateVertexBuffer()
 {
     glm::vec3 Vertices[4];
-    Vertices[0] = glm::vec3(-1.0f, -1.0f, 0.0f/*0.5773f*/);
-    Vertices[1] = glm::vec3(0.0f, -1.0f,  1.0f/*-1.15475*/);
-    Vertices[2] = glm::vec3(1.0f, -1.0f,  0.0f/*0.5773f*/);
+    Vertices[0] = glm::vec3(-1.0f, -1.0f, 0.5773f);
+    Vertices[1] = glm::vec3(0.0f, -1.0f, -1.15475);
+    Vertices[2] = glm::vec3(1.0f, -1.0f, 0.5773f);
     Vertices[3] = glm::vec3(0.0f, 1.0f, 0.0f);
 
     glGenBuffers(1, &VBO);
@@ -109,6 +125,10 @@ void createIndexBuffer() {
             2, 3, 0,
             0, 2, 1
     };
+    /*unsigned int indices[] = {
+            0, 1, 2, 3
+
+    };*/
 
     glGenBuffers(1, &IBO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
@@ -184,11 +204,15 @@ int main(int argc, char* argv[]) {
 
     glutInitWindowSize(WINDOW_WIDTH, WINDOW_HEIGHT);
     glutInitWindowPosition(100, 100);
-    glutInitDisplayMode(GLUT_RGB);
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
+    glutGameModeString("1366x768@32");
+    glutEnterGameMode();
 
     glutCreateWindow("kirill rulz ok");
 
     InitializeGlutCallbacks();
+
+    pGameCamera = new Camera(WINDOW_WIDTH, WINDOW_HEIGHT);
 
     GLenum res = glewInit();
     if (res != GLEW_OK)

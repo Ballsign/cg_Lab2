@@ -1,8 +1,5 @@
 #include "pipeline.h"
 
-
-#define ToRadian(x) ((x) * M_PI / 180.0f)
-
 void Pipeline::InitScaleTransform(float ScaleX, float ScaleY, float ScaleZ)
 {
     m[0][0] = ScaleX;    m[0][1] = 0.0f;      m[0][2] = 0.0f;      m[0][3] = 0.0f;
@@ -74,16 +71,6 @@ void Pipeline::InitCameraTransform(glm::vec3& Target, glm::vec3& Up)
 
 const glm::mat4* Pipeline::getTransformation()
 {
-    //glm::mat4 scaleTrans, rotateTrans, translationTrans, persProjTrans;
-
-    //InitScaleTransform(scaleTrans);
-    //InitRotateTransform(rotateTrans);
-    //InitTranslationTransform(translationTrans);
-    //InitPerspectiveProj(persProjTrans);
-
-    //mTransformation = persProjTrans * translationTrans * rotateTrans * scaleTrans/* * persProjTrans*/;
-    //return &mTransformation;
-
     Pipeline ScaleTrans, RotateTrans, TranslationTrans, CameraTranslationTrans, CameraRotateTrans, PersProjTrans;
 
     ScaleTrans.InitScaleTransform(mScale[0], mScale[1], mScale[2]);

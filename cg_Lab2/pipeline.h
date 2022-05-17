@@ -1,16 +1,20 @@
-#ifndef CG_LAB1_PIPELINE_H
-#define CG_LAB1_PIPELINE_H
+#ifndef PIPELINE_H
+#define	PIPELINE_H
 
 #define _USE_MATH_DEFINES
 
 #include <cmath>
-#include <glm/detail/type_mat4x4.hpp>
+#include <math.h>
+#include <glm/glm.hpp>
+#include "math_3d.h"
 
+#define ToDegree(x) ((x) * 180.0f / M_PI)
 #define ToRadian(x) ((x) * M_PI / 180.0f)
 
 class Pipeline {
 public:
     glm::mat4 m;
+    glm::vec3 v;
     Pipeline() :
         mScale(glm::vec3(1.0f, 1.0f, 1.0f)),
         mWorldPos(glm::vec3(0.0f, 0.0f, 0.0f)),
@@ -52,7 +56,6 @@ public:
         return glm::vec3(_x, _y, _z);
     }
 
-
     void SetCamera(const glm::vec3& Pos, const glm::vec3& Target, const glm::vec3& Up)
     {
         m_camera.Pos = Pos;
@@ -60,13 +63,39 @@ public:
         m_camera.Up = Up;
     }
 
-    /**/static void Normalize(glm::vec3& v) {
+    static void Normalize(glm::vec3& v) {
         float Length = sqrtf(v.x * v.x + v.y * v.y + v.z * v.z);
         if (Length != 0) {
             v.x /= Length;
             v.y /= Length;
             v.z /= Length;
         }
+    }
+    void Normalize() {
+        float Length = sqrtf(mRotateInfo.x * mRotateInfo.x + mRotateInfo.y * mRotateInfo.y + mRotateInfo.z * mRotateInfo.z);
+        if (Length != 0) {
+            mRotateInfo.x /= Length;
+            mRotateInfo.y /= Length;
+            mRotateInfo.z /= Length;
+        }
+    }
+    void Rotate(float Angle, const glm::vec3& Axe)
+    {
+        const float SinHalfAngle = sinf(ToRadian(Angle / 2));
+        const float CosHalfAngle = cosf(ToRadian(Angle / 2));
+
+        const float Rx = Axe.x * SinHalfAngle;
+        const float Ry = Axe.y * SinHalfAngle;
+        const float Rz = Axe.z * SinHalfAngle;
+        const float Rw = CosHalfAngle;
+        Quaternion RotationQ(Rx, Ry, Rz, Rw);
+
+        Quaternion ConjugateQ = RotationQ.Conjugate();
+        Quaternion W = RotationQ * v * ConjugateQ;
+
+        v.x = W.x;
+        v.y = W.y;
+        v.z = W.z;
     }
 
 private:
@@ -95,6 +124,5 @@ private:
         glm::vec3 Up;
     } m_camera;
 };
-
 
 #endif
