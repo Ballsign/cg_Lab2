@@ -2,7 +2,6 @@
 #define	CAMERA_H
 #include <glm/glm.hpp>
 
-#include "pipeline.h"
 #include "math_3d.h"
 
 class Camera
@@ -10,34 +9,38 @@ class Camera
 public:
 
     Camera(int WindowWidth, int WindowHeight);
-    Camera(int WindowWidth, int WindowHeight, const glm::vec3& Pos, const glm::vec3& Target, const glm::vec3& Up);
+
+    Camera(int WindowWidth, int WindowHeight, const Vector3f& Pos, const Vector3f& Target, const Vector3f& Up);
 
     bool OnKeyboard(int Key);
+
     void OnMouse(int x, int y);
+
     void OnRender();
 
-    const glm::vec3& GetPos() const
+    const Vector3f& GetPos() const
     {
         return pos;
     }
 
-    const glm::vec3& GetTarget() const
+    const Vector3f& GetTarget() const
     {
         return target;
     }
 
-    const glm::vec3& GetUp() const
+    const Vector3f& GetUp() const
     {
         return up;
     }
 
 private:
-    glm::vec3 pos;
-    glm::vec3 target;
-    glm::vec3 up;
 
     void Init();
     void Update();
+
+    Vector3f pos;
+    Vector3f target;
+    Vector3f up;
 
     int windowWidth;
     int windowHeight;
@@ -53,4 +56,4 @@ private:
     glm::vec2 mousePos;
 };
 
-#endif
+#endif	

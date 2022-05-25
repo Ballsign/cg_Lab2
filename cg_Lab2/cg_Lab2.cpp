@@ -8,8 +8,8 @@
 #include "pipeline.h"
 #include "Camera.h"
 
-#define WINDOW_WIDTH 800
-#define WINDOW_HEIGHT 600
+#define WINDOW_WIDTH 1024
+#define WINDOW_HEIGHT 768
 
 using namespace std;
 
@@ -25,9 +25,7 @@ static const char* pVS = "                                                      
 layout (location = 0) in vec3 Position;                                             \n\
                                                                                     \n\
 uniform mat4 gWorld;                                                                \n\
-                                                                                    \n\
 out vec4 Color;                                                                     \n\
-                                                                                    \n\
 void main()                                                                         \n\
 {                                                                                   \n\
     gl_Position = gWorld * vec4(Position, 1.0);                                     \n\
@@ -38,7 +36,6 @@ static const char* pFS = "                                                      
 #version 330                                                                        \n\
                                                                                     \n\
 in vec4 Color;                                                                      \n\
-                                                                                    \n\
 out vec4 FragColor;                                                                 \n\
                                                                                     \n\
 void main()                                                                         \n\
@@ -53,16 +50,14 @@ void RenderSceneCB() {
     glClear(GL_COLOR_BUFFER_BIT);
 
     static float Scale = 0.0f;
-    Scale += 0.01f;
+    Scale += 0.1f;
     
     Pipeline p;
 
-    p.Scale(0.1f, 0.1f, 0.1f);
-    p.Rotate(0.0f, 0.0f, 0.0f);
+    p.Rotate(0.0f, Scale, 0.0f);
     p.WorldPos(0.0f, 0.0f, 2.0f);
     p.SetCamera(pGameCamera->GetPos(), pGameCamera->GetTarget(), pGameCamera->GetUp());
     p.PerspectiveProj(60.0f, WINDOW_WIDTH, WINDOW_HEIGHT, 1.0f, 100.0f);
-
     glUniformMatrix4fv(gWorldLocation, 1, GL_TRUE, (const GLfloat*)p.getTransformation());
 
 
@@ -125,10 +120,6 @@ void createIndexBuffer() {
             2, 3, 0,
             0, 2, 1
     };
-    /*unsigned int indices[] = {
-            0, 1, 2, 3
-
-    };*/
 
     glGenBuffers(1, &IBO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
@@ -221,7 +212,10 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    //glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    //glFrontFace(GL_FRONT);
+    //glCullFace(GL_BACK);
+    //glEnable(GL_CULL_FACE);
 
     CreateVertexBuffer();
     createIndexBuffer();
