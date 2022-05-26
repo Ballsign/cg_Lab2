@@ -1,13 +1,12 @@
-﻿#include <stdio.h>
-#include <string.h>
-#include <assert.h>
-#include <math.h>
+﻿#include <math.h>
 #include <GL/glew.h>
 #include <GL/freeglut.h>
 
 #include "pipeline.h"
-#include "Camera.h"
+#include "camera.h"
 #include "texture.h"
+#include "lighting_technique.h"
+#include "glut_backend.h"
 
 #define WINDOW_WIDTH  1280
 #define WINDOW_HEIGHT 1024
@@ -27,241 +26,177 @@ struct Vertex
 };
 
 
-GLuint VBO;
-GLuint IBO;
-GLuint gWVPLocation;
-GLuint gSampler;
-Texture* pTexture = NULL;
-Camera* pGameCamera = NULL;
-
-static const char* pVS = "                                                          \n\
-#version 330                                                                        \n\
-                                                                                    \n\
-layout (location = 0) in vec3 Position;                                             \n\
-layout (location = 1) in vec2 TexCoord;                                             \n\
-                                                                                    \n\
-uniform mat4 gWVP;                                                                  \n\
-                                                                                    \n\
-out vec2 TexCoord0;                                                                 \n\
-                                                                                    \n\
-void main()                                                                         \n\
-{                                                                                   \n\
-    gl_Position = gWVP * vec4(Position, 1.0);                                       \n\
-    TexCoord0 = TexCoord;                                                           \n\
-}";
-
-static const char* pFS = "                                                          \n\
-#version 330                                                                        \n\
-                                                                                    \n\
-in vec2 TexCoord0;                                                                  \n\
-                                                                                    \n\
-out vec4 FragColor;                                                                 \n\
-                                                                                    \n\
-uniform sampler2D gSampler;                                                         \n\
-                                                                                    \n\
-void main()                                                                         \n\
-{                                                                                   \n\
-    FragColor = texture2D(gSampler, TexCoord0.xy);                                  \n\
-}";
-
-static void RenderSceneCB()
+class Main : public ICallbacks
 {
-    pGameCamera->OnRender();
+public:
 
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    static float Scale = 0.0f;
-
-    Scale += 0.1f;
-
-    Pipeline p;
-    p.Rotate(0.0f, Scale, 0.0f);
-    p.WorldPos(0.0f, 0.0f, 3.0f);
-    p.SetCamera(pGameCamera->GetPos(), pGameCamera->GetTarget(), pGameCamera->GetUp());
-    p.PerspectiveProj(60.0f, WINDOW_WIDTH, WINDOW_HEIGHT, 1.0f, 100.0f);
-
-    glUniformMatrix4fv(gWVPLocation, 1, GL_TRUE, (const GLfloat*)p.getTransformation());
-
-    glEnableVertexAttribArray(0);
-    glEnableVertexAttribArray(1);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)12);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
-    pTexture->Bind(GL_TEXTURE0);
-    glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, 0);
-
-    glDisableVertexAttribArray(0);
-    glDisableVertexAttribArray(1);
-
-    glutSwapBuffers();
-}
-
-
-static void SpecialKeyboardCB(int Key, int x, int y)
-{
-    pGameCamera->OnKeyboard(Key);
-}
-
-
-static void KeyboardCB(unsigned char Key, int x, int y)
-{
-    switch (Key) {
-    case 'q':
-        glutLeaveMainLoop();
-    }
-}
-
-
-static void PassiveMouseCB(int x, int y)
-{
-    pGameCamera->OnMouse(x, y);
-}
-
-
-static void InitializeGlutCallbacks()
-{
-    glutDisplayFunc(RenderSceneCB);
-    glutIdleFunc(RenderSceneCB);
-    glutSpecialFunc(SpecialKeyboardCB);
-    glutPassiveMotionFunc(PassiveMouseCB);
-    glutKeyboardFunc(KeyboardCB);
-}
-
-
-static void CreateVertexBuffer()
-{
-    Vertex Vertices[4] = { Vertex(Vector3f(-1.0f, -1.0f, 0.5773f), glm::vec2(0.0f, 0.0f)),
-                           Vertex(Vector3f(0.0f, -1.0f, -1.15475), glm::vec2(0.5f, 0.0f)),
-                           Vertex(Vector3f(1.0f, -1.0f, 0.5773f),  glm::vec2(1.0f, 0.0f)),
-                           Vertex(Vector3f(0.0f, 1.0f, 0.0f),      glm::vec2(0.5f, 1.0f)) };
-
-    glGenBuffers(1, &VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices), Vertices, GL_STATIC_DRAW);
-}
-
-
-static void CreateIndexBuffer()
-{
-    unsigned int indices[] = {
-             0, 3, 1,
-             1, 3, 2,
-             2, 3, 0,
-             1, 2, 0
-    };
-
-    glGenBuffers(1, &IBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-}
-
-
-static void AddShader(GLuint ShaderProgram, const char* pShaderText, GLenum ShaderType)
-{
-    GLuint ShaderObj = glCreateShader(ShaderType);
-
-    if (ShaderObj == 0) {
-        fprintf(stderr, "Error creating shader type %d\n", ShaderType);
-        exit(0);
+    Main()
+    {
+        m_pGameCamera = NULL;
+        m_pTexture = NULL;
+        m_pEffect = NULL;
+        m_scale = 0.0f;
+        m_directionalLight.Color = Vector3f(1.0f, 1.0f, 1.0f);
+        m_directionalLight.AmbientIntensity = 0.5f;
     }
 
-    const GLchar* p[1];
-    p[0] = pShaderText;
-    GLint Lengths[1];
-    Lengths[0] = strlen(pShaderText);
-    glShaderSource(ShaderObj, 1, p, Lengths);
-    glCompileShader(ShaderObj);
-    GLint success;
-    glGetShaderiv(ShaderObj, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        GLchar InfoLog[1024];
-        glGetShaderInfoLog(ShaderObj, 1024, NULL, InfoLog);
-        fprintf(stderr, "Error compiling shader type %d: '%s'\n", ShaderType, InfoLog);
-        exit(1);
+    ~Main()
+    {
+        delete m_pEffect;
+        delete m_pGameCamera;
+        delete m_pTexture;
     }
 
-    glAttachShader(ShaderProgram, ShaderObj);
-}
+    bool Init()
+    {
+        m_pGameCamera = new Camera(WINDOW_WIDTH, WINDOW_HEIGHT);
 
+        CreateVertexBuffer();
+        CreateIndexBuffer();
 
-static void CompileShaders()
-{
-    GLuint ShaderProgram = glCreateProgram();
+        m_pEffect = new LightingTechnique();
 
-    if (ShaderProgram == 0) {
-        fprintf(stderr, "Error creating shader program\n");
-        exit(1);
+        if (!m_pEffect->Init())
+        {
+            return false;
+        }
+
+        m_pEffect->Enable();
+
+        m_pEffect->SetTextureUnit(0);
+
+        m_pTexture = new Texture(GL_TEXTURE_2D, "C:/Users/zypok/Desktop/obama.png");
+
+        if (!m_pTexture->Load()) {
+            return false;
+        }
+
+        return true;
     }
 
-    AddShader(ShaderProgram, pVS, GL_VERTEX_SHADER);
-    AddShader(ShaderProgram, pFS, GL_FRAGMENT_SHADER);
-
-    GLint Success = 0;
-    GLchar ErrorLog[1024] = { 0 };
-
-    glLinkProgram(ShaderProgram);
-    glGetProgramiv(ShaderProgram, GL_LINK_STATUS, &Success);
-    if (Success == 0) {
-        glGetProgramInfoLog(ShaderProgram, sizeof(ErrorLog), NULL, ErrorLog);
-        fprintf(stderr, "Error linking shader program: '%s'\n", ErrorLog);
-        exit(1);
+    void Run()
+    {
+        GLUTBackendRun(this);
     }
 
-    glValidateProgram(ShaderProgram);
-    glGetProgramiv(ShaderProgram, GL_VALIDATE_STATUS, &Success);
-    if (!Success) {
-        glGetProgramInfoLog(ShaderProgram, sizeof(ErrorLog), NULL, ErrorLog);
-        fprintf(stderr, "Invalid shader program: '%s'\n", ErrorLog);
-        exit(1);
+    virtual void RenderSceneCB()
+    {
+        m_pGameCamera->OnRender();
+
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        m_scale += 0.1f;
+
+        Pipeline p;
+        p.Rotate(0.0f, m_scale, 0.0f);
+        p.WorldPos(0.0f, 0.0f, 3.0f);
+        p.SetCamera(m_pGameCamera->GetPos(), m_pGameCamera->GetTarget(), m_pGameCamera->GetUp());
+        p.PerspectiveProj(60.0f, WINDOW_WIDTH, WINDOW_HEIGHT, 1.0f, 100.0f);
+        m_pEffect->SetWVP(p.getTransformation());
+        m_pEffect->SetDirectionalLight(m_directionalLight);
+
+        glEnableVertexAttribArray(0);
+        glEnableVertexAttribArray(1);
+        glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)12);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IBO);
+        m_pTexture->Bind(GL_TEXTURE0);
+        glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, 0);
+
+        glDisableVertexAttribArray(0);
+        glDisableVertexAttribArray(1);
+
+        glutSwapBuffers();
     }
 
-    glUseProgram(ShaderProgram);
+    virtual void IdleCB()
+    {
+        RenderSceneCB();
+    }
 
-    gWVPLocation = glGetUniformLocation(ShaderProgram, "gWVP");
-    assert(gWVPLocation != 0xFFFFFFFF);
-    gSampler = glGetUniformLocation(ShaderProgram, "gSampler");
-    assert(gSampler != 0xFFFFFFFF);
-}
+    virtual void SpecialKeyboardCB(int Key, int x, int y)
+    {
+        m_pGameCamera->OnKeyboard(Key);
+    }
+
+
+    virtual void KeyboardCB(unsigned char Key, int x, int y)
+    {
+        switch (Key) {
+        case 'q':
+            glutLeaveMainLoop();
+            break;
+
+        case 'a':
+            m_directionalLight.AmbientIntensity += 0.05f;
+            break;
+
+        case 's':
+            m_directionalLight.AmbientIntensity -= 0.05f;
+            break;
+        }
+    }
+
+
+    virtual void PassiveMouseCB(int x, int y)
+    {
+        m_pGameCamera->OnMouse(x, y);
+    }
+
+private:
+
+    void CreateVertexBuffer()
+    {
+        Vertex Vertices[4] = { Vertex(Vector3f(-1.0f, -1.0f, 0.5773f), glm::vec2(0.0f, 0.0f)),
+                               Vertex(Vector3f(0.0f, -1.0f, -1.15475), glm::vec2(0.5f, 0.0f)),
+                               Vertex(Vector3f(1.0f, -1.0f, 0.5773f),  glm::vec2(1.0f, 0.0f)),
+                               Vertex(Vector3f(0.0f, 1.0f, 0.0f),      glm::vec2(0.5f, 1.0f)) };
+
+        glGenBuffers(1, &m_VBO);
+        glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices), Vertices, GL_STATIC_DRAW);
+    }
+
+    void CreateIndexBuffer()
+    {
+        unsigned int Indices[] = { 0, 3, 1,
+                                   1, 3, 2,
+                                   2, 3, 0,
+                                   1, 2, 0 };
+
+        glGenBuffers(1, &m_IBO);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IBO);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(Indices), Indices, GL_STATIC_DRAW);
+    }
+
+    GLuint m_VBO;
+    GLuint m_IBO;
+    LightingTechnique* m_pEffect;
+    Texture* m_pTexture;
+    Camera* m_pGameCamera;
+    float m_scale;
+    DirectionLight m_directionalLight;
+};
 
 
 int main(int argc, char** argv)
 {
-    glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
-    glutInitWindowSize(WINDOW_WIDTH, WINDOW_HEIGHT);
-    glutInitWindowPosition(100, 100);
-    glutGameModeString("1366x768@32");
-    glutEnterGameMode();
-    glutCreateWindow("kirill rulz ok");
+    GLUTBackendInit(argc, argv);
 
-    InitializeGlutCallbacks();
-
-    pGameCamera = new Camera(WINDOW_WIDTH, WINDOW_HEIGHT);
-
-    GLenum res = glewInit();
-    if (res != GLEW_OK) {
-        fprintf(stderr, "Error: '%s'\n", glewGetErrorString(res));
+    if (!GLUTBackendCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, 32, false, "OpenGL tutors")) {
         return 1;
     }
 
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-    glFrontFace(GL_CW);
-    glCullFace(GL_BACK);
-    glEnable(GL_CULL_FACE);
+    Main* pApp = new Main();
 
-    CreateVertexBuffer();
-    CreateIndexBuffer();
-
-    CompileShaders();
-
-    glUniform1i(gSampler, 0);
-
-    pTexture = new Texture(GL_TEXTURE_2D, "C:/Users/zypok/Desktop/obama.png"); //Здесь мы создаем объект Текстуры и загружаем его
-
-    if (!pTexture->Load()) {
+    if (!pApp->Init()) {
         return 1;
     }
 
-    glutMainLoop();
+    pApp->Run();
+
+    delete pApp;
+
+    return 0;
 }
