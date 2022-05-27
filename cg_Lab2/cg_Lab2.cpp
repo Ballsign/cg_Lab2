@@ -9,8 +9,8 @@
 #include "glut_backend.h"
 #include "util.h"
 
-#define WINDOW_WIDTH  1280
-#define WINDOW_HEIGHT 1024
+#define WINDOW_WIDTH  1366
+#define WINDOW_HEIGHT 768
 
 struct Vertex
 {
@@ -39,7 +39,7 @@ public:
         m_pEffect = NULL;
         m_scale = 0.0f;
         m_directionalLight.Color = Vector3f(1.0f, 1.0f, 1.0f);
-        m_directionalLight.AmbientIntensity = -0.1f;
+        m_directionalLight.AmbientIntensity = 0.0f;
         m_directionalLight.DiffuseIntensity = 0.0f;
         m_directionalLight.Direction = Vector3f(1.0f, 0.0f, 0.0f);
     }
@@ -53,8 +53,8 @@ public:
 
     bool Init()
     {
-        Vector3f Pos(0.0f, 0.0f, 0.0f);
-        Vector3f Target(0.0f, 0.0f, 1.0f);
+        Vector3f Pos(-10.0f, 0.0f, -10.0f);
+        Vector3f Target(1.0f, 0.0f, 1.0f);
         Vector3f Up(0.0, 1.0f, 0.0f);
         m_pGameCamera = new Camera(WINDOW_WIDTH, WINDOW_HEIGHT, Pos, Target, Up);
 
@@ -77,7 +77,7 @@ public:
 
         m_pEffect->SetTextureUnit(0);
 
-        m_pTexture = new Texture(GL_TEXTURE_2D, "C:/Users/zypok/Desktop/obama.png");
+        m_pTexture = new Texture(GL_TEXTURE_2D, "C:/Users/zypok/Desktop/test.png");
 
         if (!m_pTexture->Load()) {
             return false;
@@ -99,6 +99,9 @@ public:
 
         m_scale += 0.01f;
 
+
+
+
         PointLight pl[3];
         pl[0].DiffuseIntensity = 0.5f;
         pl[0].Color = Vector3f(1.0f, 0.0f, 0.0f);
@@ -116,9 +119,28 @@ public:
         pl[2].Attenuation.Linear = 0.1f;
 
         m_pEffect->SetPointLights(3, pl);
+        //////////////
 
 
+        SpotLight sl[2];
+        sl[0].DiffuseIntensity = 15.0f;
+        sl[0].Color = Vector3f(1.0f, 1.0f, 0.7f);
+        sl[0].Position = Vector3f(-0.0f, -1.9f, -0.0f);
+        sl[0].Direction = Vector3f(sinf(m_scale), 0.0f, cosf(m_scale));
+        sl[0].Attenuation.Linear = 0.1f;
+        sl[0].Cutoff = 20.0f;
 
+        sl[1].DiffuseIntensity = 5.0f;
+        sl[1].Color = Vector3f(0.0f, 1.0f, 1.0f);
+        sl[1].Position = m_pGameCamera->GetPos();
+        sl[1].Direction = m_pGameCamera->GetTarget();
+        sl[1].Attenuation.Linear = 0.1f;
+        sl[1].Cutoff = 10.0f;
+
+        m_pEffect->SetSpotLights(2, sl);
+
+
+      
 
         Pipeline p;
         p.Rotate(0.0f, 0.0f, 0.0f);
