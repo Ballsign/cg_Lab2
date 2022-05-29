@@ -40,3 +40,7 @@
 *.iml
 out
 gen
+/Release
+/Linking
+/.vs
+/cg_Lab2/Release

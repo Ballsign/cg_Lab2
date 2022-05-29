@@ -36,7 +36,7 @@ static void InitCallbacks() {
 
 void GLUTBackendInit(int argc, char** argv) {
     glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
     glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_GLUTMAINLOOP_RETURNS);
 }
 
@@ -68,6 +68,9 @@ void GLUTBackendRun(ICallbacks* pCallbacks) {
     }
 
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+
+    glEnable(GL_DEPTH_TEST);
+
     glFrontFace(GL_CW);
     glCullFace(GL_BACK);
     glEnable(GL_CULL_FACE);

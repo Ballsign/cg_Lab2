@@ -102,12 +102,15 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>C:\Users\zypok\Documents\My projects\ИКГ\cg_Lab2\Linking\include;C:\Program Files\ImageMagick\include;C:\Program Files\ImageMagick\include\Magick++;C:\Program Files\ImageMagick\include\MagickCore;C:\Program Files\ImageMagick\include\MagickWand;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>assimp-vc142-mt.lib;CORE_RL_MagickWand_.lib;CORE_RL_MagickCore_.lib;CORE_RL_Magick++_.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\Users\zypok\Documents\My projects\ИКГ\cg_Lab2\Linking\lib\assimp;C:\Program Files\ImageMagick\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -139,12 +142,31 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Camera.cpp" />
     <ClCompile Include="cg_Lab2.cpp" />
+    <ClCompile Include="glut_backend.cpp" />
+    <ClCompile Include="lighting_technique.cpp" />
+    <ClCompile Include="math_3d.cpp" />
+    <ClCompile Include="mesh.cpp" />
     <ClCompile Include="pipeline.cpp" />
+    <ClCompile Include="shadow_map_fbo.cpp" />
+    <ClCompile Include="shadow_map_technique.cpp" />
+    <ClCompile Include="technique.cpp" />
+    <ClCompile Include="texture.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="callbacks.h" />
+    <ClInclude Include="Camera.h" />
+    <ClInclude Include="glut_backend.h" />
+    <ClInclude Include="lighting_technique.h" />
     <ClInclude Include="math_3d.h" />
+    <ClInclude Include="mesh.h" />
     <ClInclude Include="pipeline.h" />
+    <ClInclude Include="shadow_map_fbo.h" />
+    <ClInclude Include="shadow_map_technique.h" />
+    <ClInclude Include="technique.h" />
+    <ClInclude Include="texture.h" />
+    <ClInclude Include="util.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
