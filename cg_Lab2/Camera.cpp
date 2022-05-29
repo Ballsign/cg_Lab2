@@ -2,7 +2,7 @@
 
 #include "camera.h"
 
-const static float STEP_SCALE = 0.1f;
+const static float STEP_SCALE = 0.4f;
 const static int MARGIN = 10;
 
 Camera::Camera(int WindowWidth, int WindowHeight)
@@ -118,18 +118,16 @@ bool Camera::OnKeyboard(int Key)
 
 void Camera::OnMouse(int x, int y)
 {
+    if ((x == mousePos.x) && (y == mousePos.y)) return;
+
     const int DeltaX = x - mousePos.x;
     const int DeltaY = y - mousePos.y;
-
-    if ((DeltaX == 0) && (DeltaY == 0)) return;
 
     AngleH += (float)DeltaX / 20.0f;
     AngleV += (float)DeltaY / 20.0f;
 
-
-
     Update();
-    glutWarpPointer(windowWidth / 2, windowHeight / 2);
+    glutWarpPointer(mousePos.x, mousePos.y);
 }
 
 

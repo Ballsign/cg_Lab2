@@ -1,6 +1,5 @@
 #ifndef CAMERA_H
 #define	CAMERA_H
-#include <glm/glm.hpp>
 
 #include "math_3d.h"
 
@@ -48,12 +47,7 @@ private:
     float AngleH;
     float AngleV;
 
-    bool OnUpperEdge;
-    bool OnLowerEdge;
-    bool OnLeftEdge;
-    bool OnRightEdge;
-
     glm::vec2 mousePos;
 };
 
-#endif	
+#endif

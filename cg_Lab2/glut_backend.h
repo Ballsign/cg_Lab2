@@ -1,5 +1,5 @@
 #ifndef GLUT_BACKEND_H
-#define GLUT_BACKEND_H
+#define	GLUT_BACKEND_H
 
 #include "callbacks.h"
 

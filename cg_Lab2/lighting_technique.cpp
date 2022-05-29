@@ -10,6 +10,7 @@ static const char* pVS = "                                                      
 layout (location = 0) in vec3 Position;                                             \n\
 layout (location = 1) in vec2 TexCoord;                                             \n\
 layout (location = 2) in vec3 Normal;                                               \n\
+layout (location = 3) in vec3 Tangent;                                              \n\
                                                                                     \n\
 uniform mat4 gWVP;                                                                  \n\
 uniform mat4 gLightWVP;                                                             \n\
@@ -19,14 +20,16 @@ out vec4 LightSpacePos;                                                         
 out vec2 TexCoord0;                                                                 \n\
 out vec3 Normal0;                                                                   \n\
 out vec3 WorldPos0;                                                                 \n\
+out vec3 Tangent0;                                                                  \n\
                                                                                     \n\
 void main()                                                                         \n\
 {                                                                                   \n\
-    gl_Position      = gWVP * vec4(Position, 1.0);                                  \n\
-    LightSpacePos = gLightWVP * vec4(Position, 1.0);                                 \n\
-    TexCoord0        = TexCoord;                                                    \n\
-    Normal0          = (gWorld * vec4(Normal, 0.0)).xyz;                            \n\
-    WorldPos0        = (gWorld * vec4(Position, 1.0)).xyz;                          \n\
+    gl_Position   = gWVP * vec4(Position, 1.0);                                     \n\
+    LightSpacePos = gLightWVP * vec4(Position, 1.0);                                \n\
+    TexCoord0     = TexCoord;                                                       \n\
+    Normal0       = (gWorld * vec4(Normal, 0.0)).xyz;                               \n\
+    Tangent0      = (gWorld * vec4(Tangent, 0.0)).xyz;                              \n\
+    WorldPos0     = (gWorld * vec4(Position, 1.0)).xyz;                             \n\
 }";
 
 static const char* pFS = "                                                          \n\
@@ -39,6 +42,7 @@ in vec4 LightSpacePos;                                                          
 in vec2 TexCoord0;                                                                  \n\
 in vec3 Normal0;                                                                    \n\
 in vec3 WorldPos0;                                                                  \n\
+in vec3 Tangent0;                                                                   \n\
                                                                                     \n\
 out vec4 FragColor;                                                                 \n\
                                                                                     \n\
@@ -81,8 +85,9 @@ uniform int gNumSpotLights;                                                     
 uniform DirectionalLight gDirectionalLight;                                                 \n\
 uniform PointLight gPointLights[MAX_POINT_LIGHTS];                                          \n\
 uniform SpotLight gSpotLights[MAX_SPOT_LIGHTS];                                             \n\
-uniform sampler2D gSampler;                                                                 \n\
+uniform sampler2D gColorMap;                                                                \n\
 uniform sampler2D gShadowMap;                                                               \n\
+uniform sampler2D gNormalMap;                                                               \n\
 uniform vec3 gEyeWorldPos;                                                                  \n\
 uniform float gMatSpecularIntensity;                                                        \n\
 uniform float gSpecularPower;                                                               \n\
@@ -93,9 +98,8 @@ float CalcShadowFactor(vec4 LightSpacePos)                                      
     vec2 UVCoords;                                                                          \n\
     UVCoords.x = 0.5 * ProjCoords.x + 0.5;                                                  \n\
     UVCoords.y = 0.5 * ProjCoords.y + 0.5;                                                  \n\
-    float z = 0.5 * ProjCoords.z + 0.5;                                                     \n\
     float Depth = texture(gShadowMap, UVCoords).x;                                          \n\
-    if (Depth < z + 0.00001)                                                                 \n\
+    if (Depth <= (ProjCoords.z + 0.005))                                                    \n\
         return 0.5;                                                                         \n\
     else                                                                                    \n\
         return 1.0;                                                                         \n\
@@ -160,9 +164,24 @@ vec4 CalcSpotLight(SpotLight l, vec3 Normal, vec4 LightSpacePos)                
     }                                                                                       \n\
 }                                                                                           \n\
                                                                                             \n\
-void main()                                                                                 \n\
+vec3 CalcBumpedNormal()                                                                     \n\
 {                                                                                           \n\
     vec3 Normal = normalize(Normal0);                                                       \n\
+    vec3 Tangent = normalize(Tangent0);                                                     \n\
+    Tangent = normalize(Tangent - dot(Tangent, Normal) * Normal);                           \n\
+    vec3 Bitangent = cross(Tangent, Normal);                                                \n\
+    vec3 BumpMapNormal = texture(gNormalMap, TexCoord0).xyz;                                \n\
+    BumpMapNormal = 2.0 * BumpMapNormal - vec3(1.0, 1.0, 1.0);                              \n\
+    vec3 NewNormal;                                                                         \n\
+    mat3 TBN = mat3(Tangent, Bitangent, Normal);                                            \n\
+    NewNormal = TBN * BumpMapNormal;                                                        \n\
+    NewNormal = normalize(NewNormal);                                                       \n\
+    return NewNormal;                                                                       \n\
+}                                                                                           \n\
+                                                                                            \n\
+void main()                                                                                 \n\
+{                                                                                           \n\
+    vec3 Normal = CalcBumpedNormal();                                                       \n\
     vec4 TotalLight = CalcDirectionalLight(Normal);                                         \n\
                                                                                             \n\
     for (int i = 0 ; i < gNumPointLights ; i++) {                                           \n\
@@ -173,7 +192,7 @@ void main()                                                                     
         TotalLight += CalcSpotLight(gSpotLights[i], Normal, LightSpacePos);                 \n\
     }                                                                                       \n\
                                                                                             \n\
-    vec4 SampledColor = texture2D(gSampler, TexCoord0.xy);                                  \n\
+    vec4 SampledColor = texture2D(gColorMap, TexCoord0.xy);                                 \n\
     FragColor = SampledColor * TotalLight;                                                  \n\
 }";
 
@@ -202,8 +221,11 @@ bool LightingTechnique::Init()
     }
 
     m_WVPLocation = GetUniformLocation("gWVP");
+    m_LightWVPLocation = GetUniformLocation("gLightWVP");
     m_WorldMatrixLocation = GetUniformLocation("gWorld");
-    m_samplerLocation = GetUniformLocation("gSampler");
+    m_colorMapLocation = GetUniformLocation("gColorMap");
+    m_shadowMapLocation = GetUniformLocation("gShadowMap");
+    m_normalMapLocation = GetUniformLocation("gNormalMap");
     m_eyeWorldPosLocation = GetUniformLocation("gEyeWorldPos");
     m_dirLightLocation.Color = GetUniformLocation("gDirectionalLight.Base.Color");
     m_dirLightLocation.AmbientIntensity = GetUniformLocation("gDirectionalLight.Base.AmbientIntensity");
@@ -214,14 +236,13 @@ bool LightingTechnique::Init()
     m_numPointLightsLocation = GetUniformLocation("gNumPointLights");
     m_numSpotLightsLocation = GetUniformLocation("gNumSpotLights");
 
-    m_LightWVPLocation = GetUniformLocation("gLightWVP");
-    m_shadowMapLocation = GetUniformLocation("gShadowMap");
-
-
     if (m_dirLightLocation.AmbientIntensity == INVALID_UNIFORM_LOCATION ||
         m_WVPLocation == INVALID_UNIFORM_LOCATION ||
+        m_LightWVPLocation == INVALID_UNIFORM_LOCATION ||
         m_WorldMatrixLocation == INVALID_UNIFORM_LOCATION ||
-        m_samplerLocation == INVALID_UNIFORM_LOCATION ||
+        m_colorMapLocation == INVALID_UNIFORM_LOCATION ||
+        m_shadowMapLocation == INVALID_UNIFORM_LOCATION ||
+        m_normalMapLocation == INVALID_UNIFORM_LOCATION ||
         m_eyeWorldPosLocation == INVALID_UNIFORM_LOCATION ||
         m_dirLightLocation.Color == INVALID_UNIFORM_LOCATION ||
         m_dirLightLocation.DiffuseIntensity == INVALID_UNIFORM_LOCATION ||
@@ -314,19 +335,16 @@ bool LightingTechnique::Init()
     return true;
 }
 
-void LightingTechnique::SetLightWVP(const Matrix4f& LightWVP)
-{
-    glUniformMatrix4fv(m_LightWVPLocation, 1, GL_TRUE, (const GLfloat*)LightWVP.m);
-}
-
-void LightingTechnique::SetShadowMapTextureUnit(unsigned int TextureUnit)
-{
-    glUniform1i(m_shadowMapLocation, TextureUnit);
-}
 
 void LightingTechnique::SetWVP(const Matrix4f& WVP)
 {
     glUniformMatrix4fv(m_WVPLocation, 1, GL_TRUE, (const GLfloat*)WVP.m);
+}
+
+
+void LightingTechnique::SetLightWVP(const Matrix4f& LightWVP)
+{
+    glUniformMatrix4fv(m_LightWVPLocation, 1, GL_TRUE, (const GLfloat*)LightWVP.m);
 }
 
 
@@ -336,11 +354,21 @@ void LightingTechnique::SetWorldMatrix(const Matrix4f& WorldInverse)
 }
 
 
-void LightingTechnique::SetTextureUnit(unsigned int TextureUnit)
+void LightingTechnique::SetColorTextureUnit(unsigned int TextureUnit)
 {
-    glUniform1i(m_samplerLocation, TextureUnit);
+    glUniform1i(m_colorMapLocation, TextureUnit);
 }
 
+
+void LightingTechnique::SetShadowMapTextureUnit(unsigned int TextureUnit)
+{
+    glUniform1i(m_shadowMapLocation, TextureUnit);
+}
+
+void LightingTechnique::SetNormalMapTextureUnit(unsigned int TextureUnit)
+{
+    glUniform1i(m_normalMapLocation, TextureUnit);
+}
 
 void LightingTechnique::SetDirectionalLight(const DirectionalLight& Light)
 {
@@ -352,20 +380,24 @@ void LightingTechnique::SetDirectionalLight(const DirectionalLight& Light)
     glUniform1f(m_dirLightLocation.DiffuseIntensity, Light.DiffuseIntensity);
 }
 
+
 void LightingTechnique::SetEyeWorldPos(const Vector3f& EyeWorldPos)
 {
     glUniform3f(m_eyeWorldPosLocation, EyeWorldPos.x, EyeWorldPos.y, EyeWorldPos.z);
 }
+
 
 void LightingTechnique::SetMatSpecularIntensity(float Intensity)
 {
     glUniform1f(m_matSpecularIntensityLocation, Intensity);
 }
 
+
 void LightingTechnique::SetMatSpecularPower(float Power)
 {
     glUniform1f(m_matSpecularPowerLocation, Power);
 }
+
 
 void LightingTechnique::SetPointLights(unsigned int NumLights, const PointLight* pLights)
 {
@@ -381,6 +413,7 @@ void LightingTechnique::SetPointLights(unsigned int NumLights, const PointLight*
         glUniform1f(m_pointLightsLocation[i].Atten.Exp, pLights[i].Attenuation.Exp);
     }
 }
+
 
 void LightingTechnique::SetSpotLights(unsigned int NumLights, const SpotLight* pLights)
 {

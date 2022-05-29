@@ -1,7 +1,5 @@
 #include "math_3d.h"
 
-
-
 Vector3f Vector3f::Cross(const Vector3f& v) const
 {
     const float _x = y * v.z - z * v.y;
@@ -34,6 +32,7 @@ void Vector3f::Rotate(float Angle, const Vector3f& Axe)
     Quaternion RotationQ(Rx, Ry, Rz, Rw);
 
     Quaternion ConjugateQ = RotationQ.Conjugate();
+    //  ConjugateQ.Normalize();
     Quaternion W = RotationQ * (*this) * ConjugateQ;
 
     x = W.x;
