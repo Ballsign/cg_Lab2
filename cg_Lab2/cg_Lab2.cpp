@@ -2,18 +2,18 @@
 #include <GL/glew.h>
 #include <GL/freeglut.h>
 
+#include "util.h"
 #include "pipeline.h"
 #include "camera.h"
 #include "texture.h"
 #include "lighting_technique.h"
 #include "glut_backend.h"
-#include "util.h"
 #include "mesh.h"
-#include "shadow_map_fbo.h"
-#include "shadow_map_technique.h"
+#include "skybox.h"
 
 #define WINDOW_WIDTH  1366
 #define WINDOW_HEIGHT 768
+
 
 class Main : public ICallbacks
 {
@@ -21,120 +21,112 @@ public:
 
     Main()
     {
-        m_pEffect = NULL;
-        m_pShadowMapTech = NULL;
+        m_pLightingTechnique = NULL;
         m_pGameCamera = NULL;
-        m_pMesh = NULL;
-        m_pQuad = NULL;
+        m_pTankMesh = NULL;
         m_scale = 0.0f;
+        m_pSkyBox = NULL;
 
-        m_spotLight.AmbientIntensity = 0.0f;
-        m_spotLight.DiffuseIntensity = 0.9f;
-        m_spotLight.Color = Vector3f(1.0f, 1.0f, 1.0f);
-        m_spotLight.Attenuation.Linear = 0.01f;
-        m_spotLight.Position = Vector3f(-20.0, 20.0, 5.0f);
-        m_spotLight.Direction = Vector3f(1.0f, -1.0f, 0.0f);
-        m_spotLight.Cutoff = 20.0f;
+        m_dirLight.AmbientIntensity = 0.2f;
+        m_dirLight.DiffuseIntensity = 0.8f;
+        m_dirLight.Color = Vector3f(1.0f, 1.0f, 1.0f);
+        m_dirLight.Direction = Vector3f(1.0f, -1.0f, 0.0f);
+
+        m_persProjInfo.FOV = 60.0f;
+        m_persProjInfo.Height = WINDOW_HEIGHT;
+        m_persProjInfo.Width = WINDOW_WIDTH;
+        m_persProjInfo.zNear = 1.0f;
+        m_persProjInfo.zFar = 100.0f;
     }
+
 
     virtual ~Main()
     {
-        SAFE_DELETE(m_pEffect);
-        SAFE_DELETE(m_pShadowMapTech);
+        SAFE_DELETE(m_pLightingTechnique);
         SAFE_DELETE(m_pGameCamera);
-        SAFE_DELETE(m_pMesh);
-        SAFE_DELETE(m_pQuad);
+        SAFE_DELETE(m_pTankMesh);
+        SAFE_DELETE(m_pSkyBox);
     }
+
 
     bool Init()
     {
-        if (!m_shadowMapFBO.Init(WINDOW_WIDTH, WINDOW_HEIGHT)) {
-            return false;
-        }
+        Vector3f Pos(0.0f, 1.0f, -20.0f);
+        Vector3f Target(0.0f, 0.0f, 1.0f);
+        Vector3f Up(0.0, 1.0f, 0.0f);
 
-        m_pGameCamera = new Camera(WINDOW_WIDTH, WINDOW_HEIGHT);
+        m_pGameCamera = new Camera(WINDOW_WIDTH, WINDOW_HEIGHT, Pos, Target, Up);
 
-        m_pEffect = new LightingTechnique();
+        m_pLightingTechnique = new LightingTechnique();
 
-        if (!m_pEffect->Init()) {
+        if (!m_pLightingTechnique->Init()) {
             printf("Error initializing the lighting technique\n");
             return false;
         }
 
-        m_pShadowMapTech = new ShadowMapTechnique();
+        m_pLightingTechnique->Enable();
+        m_pLightingTechnique->SetDirectionalLight(m_dirLight);
+        m_pLightingTechnique->SetTextureUnit(0);
 
-        if (!m_pShadowMapTech->Init()) {
-            printf("Error initializing the shadow map technique\n");
+        m_pTankMesh = new Mesh();
+
+        if (!m_pTankMesh->LoadMesh("C:/Users/zypok/Desktop/Content/phoenix_ugv.md2")) {
             return false;
         }
 
-        m_pShadowMapTech->Enable();
+        m_pSkyBox = new SkyBox(m_pGameCamera, m_persProjInfo);
 
-        m_pQuad = new Mesh();
-
-        if (!m_pQuad->LoadMesh("C:/Users/zypok/Desktop/Content/quad.obj")) {
+        if (!m_pSkyBox->Init(".",
+            "C:/Users/zypok/Desktop/Content/sp3right.jpg",
+            "C:/Users/zypok/Desktop/Content/sp3left.jpg",
+            "C:/Users/zypok/Desktop/Content/sp3top.jpg",
+            "C:/Users/zypok/Desktop/Content/sp3bot.jpg",
+            "C:/Users/zypok/Desktop/Content/sp3front.jpg",
+            "C:/Users/zypok/Desktop/Content/sp3back.jpg")) {
             return false;
         }
 
-        m_pMesh = new Mesh();
-
-        return m_pMesh->LoadMesh("C:/Users/zypok/Desktop/Content/phoenix_ugv.md2");
+        return true;
     }
+
 
     void Run()
     {
         GLUTBackendRun(this);
     }
 
+
     virtual void RenderSceneCB()
     {
         m_pGameCamera->OnRender();
         m_scale += 0.05f;
 
-        ShadowMapPass();
-        RenderPass();
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        m_pLightingTechnique->Enable();
+
+        Pipeline p;
+        p.Scale(0.1f, 0.1f, 0.1f);
+        p.Rotate(0.0f, m_scale, 0.0f);
+        p.WorldPos(0.0f, -5.0f, 3.0f);
+        p.SetCamera(m_pGameCamera->GetPos(), m_pGameCamera->GetTarget(), m_pGameCamera->GetUp());
+        p.SetPerspectiveProj(m_persProjInfo);
+
+        m_pLightingTechnique->SetWVP(p.GetWVPTrans());
+        m_pLightingTechnique->SetWorldMatrix(p.GetWorldTrans());
+        m_pTankMesh->Render();
+
+        m_pSkyBox->Render();
 
         glutSwapBuffers();
     }
 
-    virtual void ShadowMapPass()
-    {
-        m_shadowMapFBO.BindForWriting();
-
-        glClear(GL_DEPTH_BUFFER_BIT);
-
-        Pipeline p;
-        p.Scale(0.2f, 0.2f, 0.2f);
-        p.Rotate(0.0f, m_scale, 0.0f);
-        p.WorldPos(0.0f, 0.0f, 5.0f);
-        p.SetCamera(m_spotLight.Position, m_spotLight.Direction, Vector3f(0.0f, 1.0f, 0.0f));
-        p.PerspectiveProj(60.0f, WINDOW_WIDTH, WINDOW_HEIGHT, 1.0f, 50.0f);
-        m_pShadowMapTech->SetWVP(p.GetWVPTrans());
-        m_pMesh->Render();
-
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    }
-
-    virtual void RenderPass()
-    {
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        m_pShadowMapTech->SetTextureUnit(0);
-        m_shadowMapFBO.BindForReading(GL_TEXTURE0);
-
-        Pipeline p;
-        p.Scale(5.0f, 5.0f, 5.0f);
-        p.WorldPos(0.0f, 0.0f, 10.0f);
-        p.SetCamera(m_pGameCamera->GetPos(), m_pGameCamera->GetTarget(), m_pGameCamera->GetUp());
-        p.PerspectiveProj(60.0f, WINDOW_WIDTH, WINDOW_HEIGHT, 1.0f, 50.0f);
-        m_pShadowMapTech->SetWVP(p.GetWVPTrans());
-        m_pQuad->Render();
-    }
 
     virtual void IdleCB()
     {
         RenderSceneCB();
     }
+
 
     virtual void SpecialKeyboardCB(int Key, int x, int y)
     {
@@ -159,14 +151,13 @@ public:
 
 private:
 
-    LightingTechnique* m_pEffect;
-    ShadowMapTechnique* m_pShadowMapTech;
+    LightingTechnique* m_pLightingTechnique;
     Camera* m_pGameCamera;
     float m_scale;
-    SpotLight m_spotLight;
-    Mesh* m_pMesh;
-    Mesh* m_pQuad;
-    ShadowMapFBO m_shadowMapFBO;
+    DirectionalLight m_dirLight;
+    Mesh* m_pTankMesh;
+    SkyBox* m_pSkyBox;
+    PersProjInfo m_persProjInfo;
 };
 
 
